@@ -1,59 +1,91 @@
 # Import packages
-from dash import Dash, html, dash_table, dcc, callback, Output, Input
+from dash import (
+    Dash,
+    html,
+    dash_table,
+    dcc,
+    callback,
+    Output,
+    Input,
+    clientside_callback,
+)
 import pandas as pd
 import plotly.express as px
 import dash_bootstrap_components as dbc
 
-# Incorporate data
 df = pd.read_csv(
     "https://raw.githubusercontent.com/plotly/datasets/master/gapminder2007.csv"
 )
 
-# Initialize the app - incorporate a Dash Bootstrap theme
-external_stylesheets = [dbc.themes.CERULEAN]
+external_stylesheets = [dbc.themes.ZEPHYR, dbc.icons.FONT_AWESOME]
 app = Dash(__name__, external_stylesheets=external_stylesheets)
 
-# App layout
+color_mode_switch = dbc.Row(
+    [
+        dbc.Label(className="fa fa-moon inline", html_for="switch"),
+        dbc.Switch(
+            id="switch", value=True, className="d-inline-block ms-1", persistence=True
+        ),
+        dbc.Label(className="fa fa-sun inline", html_for="switch"),
+    ],
+    className="align-items-center",
+)
+
+header = dbc.Row(
+    [
+        html.Div(
+            "My First App with Data, Graph, and Controls",
+            className="text-primary text-center fs-3",
+        )
+    ]
+)
+
+data_selector = dbc.Row(
+    [
+        dbc.RadioItems(
+            options=[{"label": x, "value": x} for x in ["pop", "lifeExp", "gdpPercap"]],
+            value="lifeExp",
+            inline=True,
+            id="radio-buttons",
+        )
+    ]
+)
+
+data_table = dbc.Row(
+    [
+        dbc.Col(
+            [
+                dash_table.DataTable(
+                    data=df.to_dict("records"),
+                    page_size=12,
+                    style_table={"overflowX": "auto"},
+                )
+            ],
+            width=6,
+        ),
+        dbc.Col([dcc.Graph(figure={}, id="graph-placeholder")], width=6),
+    ]
+)
+
 app.layout = dbc.Container(
     [
-        dbc.Row(
-            [
-                html.Div(
-                    "My First App with Data, Graph, and Controls",
-                    className="text-primary text-center fs-3",
-                )
-            ]
-        ),
-        dbc.Row(
-            [
-                dbc.RadioItems(
-                    options=[
-                        {"label": x, "value": x}
-                        for x in ["pop", "lifeExp", "gdpPercap"]
-                    ],
-                    value="lifeExp",
-                    inline=True,
-                    id="radio-buttons",
-                )
-            ]
-        ),
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        dash_table.DataTable(
-                            data=df.to_dict("records"),
-                            page_size=12,
-                            style_table={"overflowX": "auto"},
-                        )
-                    ],
-                    width=6,
-                ),
-                dbc.Col([dcc.Graph(figure={}, id="graph-placeholder")], width=6),
-            ]
-        ),
+        header,
+        data_selector,
+        data_table,
+        color_mode_switch,
     ],
     fluid=True,
+)
+
+clientside_callback(
+    """
+    (switchOn) => {
+       document.documentElement.setAttribute("data-bs-theme", switchOn ? "light" : "dark"); 
+       return window.dash_clientside.no_update
+    }
+    """,
+    Output("switch", "id"),
+    Input("switch", "value"),
 )
 
 
